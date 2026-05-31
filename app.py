@@ -1,7 +1,8 @@
 import os
+from datetime import datetime
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from database.db import init_db, seed_db, get_user_by_email, create_user
@@ -103,13 +104,24 @@ def profile():
         session.clear()
         return redirect(url_for("login"))
 
-    stats        = queries.get_summary_stats(uid)
-    transactions = queries.get_recent_transactions(uid)
-    categories   = queries.get_category_breakdown(uid)
+    start_date = request.args.get("start_date", "").strip() or None
+    end_date   = request.args.get("end_date",   "").strip() or None
+
+    for val in (start_date, end_date):
+        if val:
+            try:
+                datetime.strptime(val, "%Y-%m-%d")
+            except ValueError:
+                abort(400)
+
+    stats        = queries.get_summary_stats(uid, start_date=start_date, end_date=end_date)
+    transactions = queries.get_recent_transactions(uid, start_date=start_date, end_date=end_date)
+    categories   = queries.get_category_breakdown(uid, start_date=start_date, end_date=end_date)
 
     return render_template("profile.html", user=user,
                            stats=stats, transactions=transactions,
-                           categories=categories)
+                           categories=categories,
+                           start_date=start_date, end_date=end_date)
 
 
 @app.route("/expenses/add")
@@ -130,4 +142,4 @@ def delete_expense(id):
 if __name__ == "__main__":
     init_db()
     seed_db()
-    app.run(debug=True, port=5001)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1", port=5001)
