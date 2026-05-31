@@ -1,6 +1,8 @@
 import os
 import sqlite3
 
+from werkzeug.security import generate_password_hash
+
 _DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'spendly.db')
 
 
@@ -50,6 +52,13 @@ def init_db():
     conn.close()
 
 
+def get_user_by_id(user_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.close()
+    return row
+
+
 def get_user_by_email(email):
     conn = get_db()
     row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
@@ -74,10 +83,11 @@ def seed_db():
     for name in ["Food", "Travel", "Bills", "Shopping", "Health", "Entertainment"]:
         cursor.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (name,))
 
-    # Plain-text password is intentional for dev seeding only — Step 3 adds hashing
+    # INSERT OR IGNORE skips existing rows; a pre-existing plaintext password will NOT
+    # be updated automatically — delete spendly.db and re-run to get the hashed version.
     cursor.execute(
         "INSERT OR IGNORE INTO users (name, email, password) VALUES (?, ?, ?)",
-        ("Demo User", "demo@spendly.com", "demo1234"),
+        ("Demo User", "demo@spendly.com", generate_password_hash("demo1234")),
     )
 
     user = cursor.execute(
