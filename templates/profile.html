@@ -1,41 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Profile — Spendly{% endblock %}
+{% block title %}Profile – Spendly{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 {% endblock %}
 
 {% block content %}
 <section class="profile-section">
-    <div class="profile-container">
+  <div class="profile-container">
 
-        <div class="profile-header">
-            <div class="profile-avatar">{{ user.name[0].upper() }}</div>
-            <div>
-                <h1 class="profile-name">{{ user.name }}</h1>
-                <p class="profile-since">Member since {{ user.created_at[:10] }}</p>
-            </div>
-        </div>
-
-        <div class="profile-card">
-            <h2 class="profile-section-title">Account Details</h2>
-            <dl class="profile-fields">
-                <div class="profile-row">
-                    <dt class="profile-key">Full name</dt>
-                    <dd class="profile-val">{{ user.name }}</dd>
-                </div>
-                <div class="profile-row">
-                    <dt class="profile-key">Email address</dt>
-                    <dd class="profile-val">{{ user.email }}</dd>
-                </div>
-                <div class="profile-row">
-                    <dt class="profile-key">Member since</dt>
-                    <dd class="profile-val">{{ user.created_at[:10] }}</dd>
-                </div>
-            </dl>
-        </div>
-
+    {# ── User hero card ── #}
+    <div class="profile-hero-card">
+      <div class="profile-avatar">
+        {{ user['name'].split()[0][0] | upper }}{% if user['name'].split() | length > 1 %}{{ user['name'].split()[-1][0] | upper }}{% endif %}
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name">{{ user['name'] }}</h1>
+        <p class="profile-email">{{ user['email'] }}</p>
+        <p class="profile-since">Member since {{ user['created_at'][:10] }}</p>
+      </div>
+      <a href="{{ url_for('logout') }}" class="btn-ghost profile-logout">
+        <i data-lucide="log-out" class="btn-icon"></i>
+        Log out
+      </a>
     </div>
+
+    {# ── Summary stats row ── #}
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="wallet"></i>
+        </div>
+        <p class="stat-label">Total Spent</p>
+        <p class="stat-value">{{ stats.total_spent }}</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--amber">
+          <i data-lucide="credit-card"></i>
+        </div>
+        <p class="stat-label">Transactions</p>
+        <p class="stat-value">{{ stats.tx_count }}</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--neutral">
+          <i data-lucide="pie-chart"></i>
+        </div>
+        <p class="stat-label">Top Category</p>
+        <p class="stat-value stat-value--sm">{{ stats.top_category }}</p>
+      </div>
+    </div>
+
+    {# ── Two-column grid ── #}
+    <div class="profile-grid">
+
+      {# Transaction history table #}
+      <div class="profile-card">
+        <h2 class="profile-section-title">Recent Transactions</h2>
+        <table class="txn-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th class="txn-amount-col">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in transactions %}
+            <tr>
+              <td class="txn-date">{{ txn.date }}</td>
+              <td class="txn-desc">{{ txn.description }}</td>
+              <td><span class="badge badge--{{ txn.category | lower }}">{{ txn.category }}</span></td>
+              <td class="txn-amount">{{ txn.amount }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# Category breakdown #}
+      <div class="profile-card">
+        <h2 class="profile-section-title">By Category</h2>
+        <div class="cat-list">
+          {% for cat in categories %}
+          <div class="cat-row">
+            <div class="cat-row-top">
+              <span class="cat-name">{{ cat.name }}</span>
+              <span class="cat-total">{{ cat.total }}</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill progress-fill--{{ cat.name | lower }}" style="width: {{ cat.pct }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>{# /.profile-grid #}
+
+  </div>{# /.profile-container #}
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>lucide.createIcons();</script>
 {% endblock %}

@@ -1,4 +1,5 @@
 import os
+from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,6 +8,15 @@ from database.db import init_db, seed_db, get_user_by_email, get_user_by_id, cre
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ------------------------------------------------------------------ #
@@ -79,14 +89,35 @@ def logout():
 
 
 @app.route("/profile")
+@login_required
 def profile():
-    if not session.get("user_id"):
-        return redirect(url_for("login"))
     user = get_user_by_id(session["user_id"])
     if user is None:
         session.clear()
         return redirect(url_for("login"))
-    return render_template("profile.html", user=user)
+
+    stats = {
+        "total_spent": "₹3,240.00",
+        "tx_count": 12,
+        "top_category": "Food",
+    }
+    transactions = [
+        {"date": "28 May 2025", "description": "Lunch at canteen",  "category": "Food",     "amount": "₹450.00"},
+        {"date": "27 May 2025", "description": "Metro card top-up", "category": "Travel",   "amount": "₹120.00"},
+        {"date": "26 May 2025", "description": "Coffee and snacks", "category": "Food",     "amount": "₹85.50"},
+        {"date": "25 May 2025", "description": "Electricity bill",  "category": "Bills",    "amount": "₹980.00"},
+        {"date": "24 May 2025", "description": "Weekend groceries", "category": "Shopping", "amount": "₹640.00"},
+    ]
+    categories = [
+        {"name": "Food",        "total": "₹1,420.00", "pct": 44},
+        {"name": "Bills",       "total": "₹980.00",   "pct": 30},
+        {"name": "Shopping",    "total": "₹640.00",   "pct": 20},
+        {"name": "Travel",      "total": "₹120.00",   "pct": 4},
+        {"name": "Health",      "total": "₹80.00",    "pct": 2},
+    ]
+    return render_template("profile.html", user=user,
+                           stats=stats, transactions=transactions,
+                           categories=categories)
 
 
 @app.route("/expenses/add")
